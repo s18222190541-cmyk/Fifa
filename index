@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Cup 2026: Premium Live Tracker</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #273549;
+            --accent: #10b981;
+            --accent-glow: rgba(16, 185, 129, 0.4);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --danger: #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, #0f172a 100%);
+            padding: 1.5rem;
+            text-align: center;
+            border-bottom: 2px solid var(--accent);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(90deg, #fff, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 var(--accent-glow); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* Notification Banner */
+        .notif-banner {
+            background: var(--bg-card);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .notif-banner.hidden { display: none; }
+
+        .btn {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .btn:active { transform: scale(0.95); }
+        .btn:hover { opacity: 0.9; }
+
+        /* Main Content */
+        main {            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Matches Grid (Responsive) */
+        .matches-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .match-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: transform 0.2s, border-color 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .match-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+        }
+
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .stage-badge {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .matchup {
+            font-size: 1.4rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 0.5rem 0;
+        }
+
+        .countdown {
+            text-align: center;
+            font-size: 1.1rem;
+            color: var(--accent);
+            font-family: monospace;
+            font-weight: bold;
+            background: rgba(16, 185, 129, 0.1);
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+
+        .countdown.live {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            animation: pulse-text 1s infinite;
+        }
+
+        @keyframes pulse-text {
+            50% { opacity: 0.7; }
+        }
+
+        /* Toast Notification (Fallback/UI) */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: var(--bg-card);
+            border-left: 4px solid var(--accent);
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            animation: slideIn 0.3s ease-out;
+            max-width: 300px;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.4rem; }
+            .matches-grid { grid-template-columns: 1fr; }
+            .notif-banner { flex-direction: column; gap: 0.5rem; text-align: center; }
+            .toast-container { left: 10px; right: 10px; bottom: 10px; }
+            .toast { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>World Cup 2026: Premium Live Tracker</h1>
+        <div class="status-bar">
+            <div class="live-dot"></div>
+            <span>Road to Final | Live Data Sync Active</span>
+        </div>
+    </header>
+
+    <div id="notif-banner" class="notif-banner">
+        <span>🔔 Get real-time match alerts before kickoff!</span>
+        <button id="enable-notifs" class="btn">Enable Notifications</button>
+    </div>
+
+    <main>
+        <h2 class="section-title">Upcoming Matches</h2>
+        <div id="matches-container" class="matches-grid">
+            <!-- Matches injected via JS -->
+        </div>
+    </main>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script>
+        // --- MOCK DATA ---
+        // Using dynamic dates so you can test the countdown and notifications immediately
+        const now = Date.now();
+        const matches = [
+            { id: 1, teamA: "Brazil", teamB: "Germany", stage: "Group Stage", datetime: new Date(now + 29 * 60000).toISOString() }, // Starts in 29 mins (Triggers 30m alert immediately)
+            { id: 2, teamA: "Argentina", teamB: "France", stage: "Quarter Final", datetime: new Date(now + 2 * 60 * 60000).toISOString() }, // Starts in 2 hours
+            { id: 3, teamA: "Japan", teamB: "Spain", stage: "Semi Final", datetime: new Date(now + 24 * 60 * 60000).toISOString() }, // Starts in 1 day
+            { id: 4, teamA: "USA", teamB: "England", stage: "Final", datetime: new Date(now + 5 * 1000).toISOString() } // Starts in 5 seconds (For testing "Start Now" alert)
+        ];
+        let notifState = { sent: {} };
+
+        // --- NOTIFICATION SYSTEM ---
+        const notifBanner = document.getElementById('notif-banner');
+        const enableBtn = document.getElementById('enable-notifs');
+
+        function checkPermission() {
+            if (!("Notification" in window)) {
+                notifBanner.classList.add('hidden');
+                return;
+            }
+            if (Notification.permission === "granted") {
+                notifBanner.classList.add('hidden');
+            } else if (Notification.permission === "denied") {
+                notifBanner.querySelector('span').innerText = "⚠️ Notifications blocked. Please enable in browser settings.";
+                enableBtn.style.display = 'none';
+            }
+        }
+
+        enableBtn.addEventListener('click', async () => {
+            if ("Notification" in window) {
+                const permission = await Notification.requestPermission();
+                checkPermission();
+                if (permission === "granted") {
+                    showToast("Notifications Enabled!", "You will be alerted 30 mins before kickoff.");
+                }
+            }
+        });
+
+        function sendNotification(title, body) {
+            // Send OS Notification
+            if (Notification.permission === "granted") {
+                new Notification(title, {
+                    body: body,
+                    icon: '⚽', // Fallback emoji, replace with actual URL in production
+                    badge: '⚽',
+                    vibrate: [200, 100, 200]
+                });
+            }
+            // Always show UI Toast as well for visibility
+            showToast(title, body);
+        }
+
+        function showToast(title, body) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<strong>${title}</strong><br><small>${body}</small>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        function checkMatchAlerts() {
+            const currentTime = Date.now();
+            matches.forEach(match => {
+                const matchTime = new Date(match.datetime).getTime();
+                const diff = matchTime - currentTime;
+
+                // 30 Minutes Before (Trigger between 30m and 29m remaining)
+                if (diff <= 30 * 60 * 1000 && diff > 29 * 60 * 1000) {
+                    if (!notifState.sent[match.id + '_30']) {
+                        sendNotification(`⏳ Match in 30 Minutes!`, `${match.teamA} vs ${match.teamB} (${match.stage})`);
+                        notifState.sent[match.id + '_30'] = true;
+                    }
+                }
+
+                // Match Start Time (Trigger between 0m and -1m)
+                if (diff <= 0 && diff > -1 * 60 * 1000) {
+                    if (!notifState.sent[match.id + '_start']) {
+                        sendNotification(`🚨 KICKOFF NOW!`, `${match.teamA} vs ${match.teamB} is starting!`);
+                        notifState.sent[match.id + '_start'] = true;
+                    }
+                }
+            });
+        }
+
+        // --- UI RENDERING & COUNTDOWN ---
+        function renderMatches() {
+            const container = document.getElementById('matches-container');
+            container.innerHTML = '';
+
+            matches.forEach(match => {
+                const matchTime = new Date(match.datetime).getTime();
+                const diff = matchTime - Date.now();
+                
+                let countdownText = "";
+                let isLive = false;
+
+                if (diff > 0) {
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const secs = Math.floor((diff % (1000 * 60)) / 1000);
+                    
+                    countdownText = `${days}d ${hours}h ${mins}m ${secs}s`;
+                } else {                    countdownText = "LIVE NOW";
+                    isLive = true;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'match-card';
+                card.innerHTML = `
+                    <div class="match-header">
+                        <span>${new Date(match.datetime).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'})}</span>
+                        <span class="stage-badge">${match.stage}</span>
+                    </div>
+                    <div class="matchup">${match.teamA} <span style="color:var(--text-secondary)">vs</span> ${match.teamB}</div>
+                    <div class="countdown ${isLive ? 'live' : ''}">${countdownText}</div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- INITIALIZATION ---
+        checkPermission();
+        renderMatches();
+        
+        // Update UI every second
+        setInterval(renderMatches, 1000);
+        
+        // Check for notifications every 5 seconds
+        setInterval(checkMatchAlerts, 5000);
+        checkMatchAlerts(); // Run once on load
+
+    </script>
+</body>
+</html>
